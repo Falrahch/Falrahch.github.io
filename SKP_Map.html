@@ -1,0 +1,4592 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>SKP Customers</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.31.0/mapbox-gl.js'></script>
+	<link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.31.0/mapbox-gl.css' rel='stylesheet' />
+	<link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700' rel='stylesheet'>
+    <style>
+body {
+  color: #404040;
+  font: 400 15px/22px 'Source Sans Pro', 'Helvetica Neue', Sans-serif;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+
+/* sidebar positioning and size */
+.sidebar {
+  position: absolute;
+  width: 20%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  border-right: 1px solid rgba(0, 0, 0, 0.25);
+}
+
+.pad2 {
+  padding: 20px;
+}
+
+/* map positioning and size */
+.map {
+  position: absolute;
+  left: 20%;
+  width: 80%;
+  top: 0;
+  bottom: 0;
+}
+
+h1 {
+  font-size: 22px;
+  margin: 0;
+  font-weight: 400;
+  line-height: 20px;
+  padding: 20px 2px;
+}
+
+a {
+  color: #404040;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #101010;
+}
+
+.heading {
+  background: #fff;
+  border-bottom: 1px solid #eee;
+  height: 60px;
+  line-height: 60px;
+  padding: 0 10px;
+}
+
+.listings {
+  height: 100%;
+  overflow: auto;
+  padding-bottom: 60px;
+}
+
+.listings .item {
+  display: block;
+  border-bottom: 1px solid #eee;
+  padding: 10px;
+  text-decoration: none;
+}
+
+.listings .item:last-child { border-bottom: none; }
+
+.listings .item .title {
+  display: block;
+  color: #00853e;
+  font-weight: 700;
+}
+
+.listings .item .title small { font-weight: 400; }
+
+.listings .item.active .title,
+.listings .item .title:hover { color: #8cc63f; }
+
+.listings .item.active {
+  background-color: #f8f8f8;
+}
+
+::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+  border-left: 0;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+::-webkit-scrollbar-track {
+  background: none;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #00853e;
+  border-radius: 0;
+}
+
+.marker_machine {
+  border: none;
+  /*cursor: pointer;*/
+  height: 56px;
+  width: 56px;
+  background-image: url(pointer_M.png);
+  background-color: rgba(0, 0, 0, 0);
+  transform: translate(28px, 56px, 0);
+}
+
+.marker_tentmaster {
+  border: none;
+  cursor: pointer;
+  height: 56px;
+  width: 56px;
+  background-image: url(pointer_T.png);
+  background-color: rgba(0, 0, 0, 0);
+  transform: translate(28px, 56px, 0);
+}
+
+.marker_ident {
+  border: none;
+  cursor: pointer;
+  height: 56px;
+  width: 56px;
+  background-image: url(pointer_I.png);
+  background-color: rgba(0, 0, 0, 0);
+  transform: translate(28px, 56px, 0);
+}
+
+.clearfix { display: block; }
+
+.clearfix::after {
+  content: '.';
+  display: block;
+  height: 0;
+  clear: both;
+  visibility: hidden;
+}
+
+/* marker tweaks */
+.mapboxgl-popup {
+  padding-bottom: 10px;
+  padding-left: 37px;
+}
+
+.mapboxgl-popup-close-button {
+  display: none;
+}
+
+.mapboxgl-popup-content {
+  font: 400 15px/22px 'Source Sans Pro', 'Helvetica Neue', Sans-serif;
+  padding: 0;
+  width: 200px;
+}
+
+.mapboxgl-popup-content-wrapper {
+  padding: 1%;
+}
+
+.mapboxgl-popup-content h3 {
+  background: #91c949;
+  color: #fff;
+  margin: 0;
+  display: block;
+  padding: 10px;
+  border-radius: 3px 3px 0 0;
+  font-weight: 700;
+  margin-top: -15px;
+}
+
+.mapboxgl-popup-content h4 {
+  margin: 0;
+  display: block;
+  padding: 10px;
+  font-weight: 400;
+}
+
+.mapboxgl-popup-content div {
+  padding: 10px;
+}
+
+.mapboxgl-container .leaflet-marker-icon {
+  cursor: pointer;
+}
+
+.mapboxgl-popup-anchor-top > .mapboxgl-popup-content {
+  margin-top: 15px;
+}
+
+.mapboxgl-popup-anchor-top > .mapboxgl-popup-tip {
+  border-bottom-color: #91c949;
+}
+
+    </style>
+</head>
+<body>
+
+<div class='sidebar pad2'>Listing</div>
+<div id='map' class='map pad2'></div>
+<div class='sidebar'>
+  <div class='heading'>
+    <h1>Our customers</h1>
+  </div>
+  <div id='listings' class='listings'></div>
+</div>
+<script>
+// This will let you use the .remove() function later on
+if (!('remove' in Element.prototype)) {
+  Element.prototype.remove = function() {
+    if (this.parentNode) {
+      this.parentNode.removeChild(this);
+    }
+  };
+}
+
+mapboxgl.accessToken = 'pk.eyJ1IjoiZmVsaXhzZWdpZXQiLCJhIjoiY2l6Z3VkZGdxMDAyOTMzbzNlM3AyODF3NCJ9.D88Oj9B9GXk6WarcRhLf5g';
+// This adds the map to the page
+var map = new mapboxgl.Map({
+  // container id specified in the HTML
+  container: 'map',
+  // style URL
+  style: 'mapbox://styles/mapbox/basic-v9',
+  // initial position in [long, lat] format
+  center: [8.881065, 48.951661],
+  // initial zoom
+  zoom: 14
+});
+
+var customers = {
+  /* data from sweetgreen.geojson, downloaded above */
+   "type": "FeatureCollection",
+  "features": [
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "metron eging GmbH",
+		"product": "BR1200O",
+		"street": " Grafenauer Str. 16+18",
+		"ZIP": "94535",
+		"city": "Eging am See",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  13.27079,
+		  48.71634
+		],
+		"type": "Point"
+	  },
+	  "id": "010197532a621012a62c6f041f00bae3"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Ortenauer Zeltverleih",
+		"product": "WT3000Kmobil",
+		"street": " Hohrottweg 8",
+		"ZIP": "77694",
+		"city": "Kehl",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  7.86683,
+		  48.58838
+		],
+		"type": "Point"
+	  },
+	  "id": "013bb203faed7c4c5a823499e1650700"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Tivoli Rochelais Sarl.",
+		"product": "EC5000",
+		"street": " 50/ av L�opold Robinet",
+		"ZIP": "17000",
+		"city": " La Rochelle",
+		"country": "F"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  -1.1363,
+		  46.16542
+		],
+		"type": "Point"
+	  },
+	  "id": "02d572a20ab17f96453852ddd2087d9a"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Carpas D'Angiola Espacios Funcionales",
+		"product": "PR5000VG",
+		"street": " Juan XXIII 2980 Park Industrial Almirante Brown",
+		"ZIP": "1852",
+		"city": "Burzaco- Pcia de Buenos Aires",
+		"country": "ARG"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  -58.42036,
+		  -34.8329
+		],
+		"type": "Point"
+	  },
+	  "id": "03cab917b77291448409bd0b789d93e8"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Zeltverleih Z�rlein",
+		"product": "EC3000G",
+		"street": " Unter der Setz 19",
+		"ZIP": "74564",
+		"city": "Crailsheim",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  10.11923,
+		  49.14178
+		],
+		"type": "Point"
+	  },
+	  "id": "05b676e078dd6ba3272ef9911656637b"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Stiftl & S�hne KG",
+		"product": "PR5000VG | BR1200",
+		"street": " Kronwiedstra�e 5",
+		"ZIP": "85088",
+		"city": "Vohburg a.d.Donau",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  11.6006,
+		  48.73708
+		],
+		"type": "Point"
+	  },
+	  "id": "087e9215b36144e68f87869e3a463d99"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Albaddad",
+		"product": "PR6000VG2 | BR2000 | WK2000",
+		"street": " Albaddad industrial complex/Dubai Free Zone/Techno Park",
+		"ZIP": "56162",
+		"city": "Dubai",
+		"country": "UAE"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  55.06082,
+		  24.92721
+		],
+		"type": "Point"
+	  },
+	  "id": "0927b20445cb682baead2cd6b2ac4073"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Tokuyama Malaysia SDN.BHD. /Baustellenadresse",
+		"product": "BC2000 | BC2000",
+		"street": " Samalaju Industrial Estate",
+		"ZIP": "97012",
+		"city": "Sarawak",
+		"country": "MAL"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  113.05607,
+		  3.19771
+		],
+		"type": "Point"
+	  },
+	  "id": "0929c1b45832e620947b87155c4d83e5"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Partyzeltverleih Huber",
+		"product": "EC3000",
+		"street": " Frickenhausener Strasse 15",
+		"ZIP": "87746",
+		"city": " Erkheim - Arlesried",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  10.34552,
+		  48.07688
+		],
+		"type": "Point"
+	  },
+	  "id": "0afa692060a3559bc7f2355b046f1103"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Seng Heng Tables & Chairs Rental",
+		"product": "Tentmaster",
+		"street": " 15 Senoko S Rd",
+		"ZIP": "758076",
+		"city": "Singapur",
+		"country": "SGP"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  103.80586,
+		  1.45753
+		],
+		"type": "Point"
+	  },
+	  "id": "0bb125d3ad78f7513ab742b905b72acb"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Eurotend S.p.A.",
+		"product": "TA2000",
+		"street": " Via Piubega/ 29",
+		"ZIP": "46040",
+		"city": "Ceresara (Mantova)",
+		"country": "I"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  10.55642,
+		  45.25358
+		],
+		"type": "Point"
+	  },
+	  "id": "0d3d9c85560ace5b6612da04590c6017"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Tent Verkoop.nl Regtvoort B.V.",
+		"product": "EC5500I",
+		"street": " Herenweg 117",
+		"ZIP": "2402",
+		"city": "ND Alphen aan den Rijn",
+		"country": "NL"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  4.66377,
+		  52.15681
+		],
+		"type": "Point"
+	  },
+	  "id": "0d4a2c5854f292e732f8cfeeaaaf2eb5"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Freitag",
+		"product": "WT3000K",
+		"street": " Max-Planck-Str. 6",
+		"ZIP": "23617",
+		"city": "Stockelsdorf",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  10.64649,
+		  53.90394
+		],
+		"type": "Point"
+	  },
+	  "id": "0d877828cb73033e1b9f07cbec0bf354"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Donsbach-Weirauch GmbH",
+		"product": "PR6000VG",
+		"street": " Gem�ndener Str. 9",
+		"ZIP": "55469",
+		"city": "Simmern",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  7.52015,
+		  49.97938
+		],
+		"type": "Point"
+	  },
+	  "id": "0da8f48d826a9cf27e4ad2a5f93182bf"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Tentenverhuur ter Haar BV",
+		"product": "PR5000VG |SW1000",
+		"street": " Braunstraat 3",
+		"ZIP": "8013",
+		"city": "PR Zwolle",
+		"country": "NL"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  6.13109,
+		  52.4867
+		],
+		"type": "Point"
+	  },
+	  "id": "0f2ebacd2eb1f382892f1e0f5c081bd6"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "SOLON Energy GmbH",
+		"product": "BR2000",
+		"street": " Am Studio 16",
+		"ZIP": "12489",
+		"city": "Berlin",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  13.54446,
+		  52.4284
+		],
+		"type": "Point"
+	  },
+	  "id": "13fe559255c7b4c92a842956ca234cb3"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "De Weerd Tentenverhuur BV",
+		"product": "SW1000 | PR 6000 VG | BR2500",
+		"street": " Rijksstraatweg 100",
+		"ZIP": "7383 AV",
+		"city": "Voorst",
+		"country": "NL"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  6.14204,
+		  52.17053
+		],
+		"type": "Point"
+	  },
+	  "id": "142a4c0fab6d3933a84b4d7d281cd43a"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "P.B.I. SA",
+		"product": "EC5000",
+		"street": " Quartier des Anglais/ 9",
+		"ZIP": "7100",
+		"city": "La Louvi�re",
+		"country": "B"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  4.1674,
+		  50.48858
+		],
+		"type": "Point"
+	  },
+	  "id": "14d96143f6358a65c8bf86984a607bcf"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Visser Tentenverhuur B.V.",
+		"product": "PR5000",
+		"street": " Transito 15",
+		"ZIP": "6909 DA",
+		"city": "Babberich",
+		"country": "NL"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  6.1515,
+		  51.90785
+		],
+		"type": "Point"
+	  },
+	  "id": "14eacf5ecfa8e7db2df3e2da355f8dbf"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Zelte Br�ggemann GbR",
+		"product": "EC3000",
+		"street": " Rektor-Esser-Str. 25",
+		"ZIP": "41048",
+		"city": "M�nchengladbach",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  6.39003,
+		  51.20348
+		],
+		"type": "Point"
+	  },
+	  "id": "158c9cbae42db52767fdcc73551c1e36"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Bill-Veranstaltungslogistik GmbH",
+		"product": "PR6000VG",
+		"street": " Heinrich-Neeb-Str. 17",
+		"ZIP": "35423",
+		"city": "Lich",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.81759,
+		  50.51625
+		],
+		"type": "Point"
+	  },
+	  "id": "1898a5e4e861f61b982dcbb9da250155"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "ZGE GmbH Zelte-u. Getr�nkeexpress",
+		"product": "EC5000",
+		"street": " Hardenbergstr. 93",
+		"ZIP": "47799",
+		"city": "Krefeld",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  6.58346,
+		  51.33369
+		],
+		"type": "Point"
+	  },
+	  "id": "1a5513640997c230a34f23bf4a6b8ded"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Hans Zitzmann GmbH",
+		"product": "BR1200",
+		"street": " Hauptstr. 1",
+		"ZIP": "87736",
+		"city": "B�hen",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  10.30082,
+		  47.88111
+		],
+		"type": "Point"
+	  },
+	  "id": "1c323946b0f2ca2523fe9a86c14f5be2"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Bavaria-Zelte GmbH",
+		"product": "EC3000 m.Trocknung | WT3000P",
+		"street": " R�merstr. 12a",
+		"ZIP": "85661",
+		"city": "Forstinning",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  11.89119,
+		  48.16833
+		],
+		"type": "Point"
+	  },
+	  "id": "23ed2f4f8939652c11e31349e3a18903"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "De Jay Hiring (Pty) Ltd t/a MPR Hiring",
+		"product": "EC5000",
+		"street": " 22 First Street/ Booysens Reserve",
+		"ZIP": "2091",
+		"city": "Johannesburg",
+		"country": "ZA"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  28.00803,
+		  -26.23284
+		],
+		"type": "Point"
+	  },
+	  "id": "241ccec7bcbd5394b99dd160ad5b49fa"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Moritz Schulze Fest- u.Veranstaltungsservice GmbH",
+		"product": "EC3000",
+		"street": " K�nigsbr�cker Str. 32",
+		"ZIP": "1917",
+		"city": "Kamenz",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  14.08934,
+		  51.27173
+		],
+		"type": "Point"
+	  },
+	  "id": "255909ce2853f293de8060a91fcffc91"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Carl Horn GmbH & Co.KG",
+		"product": "EC5012",
+		"street": " Hermann-Sauter-Str. 8",
+		"ZIP": "76829",
+		"city": "Landau/Pfalz",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.119249,
+		  49.20457
+		],
+		"type": "Point"
+	  },
+	  "id": "25d1f639b3b5c0004cddf9a9233c5a42"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Events Sugiez AG",
+		"product": "PR6000VG | TA2000",
+		"street": " Route du pr� du pont 95",
+		"ZIP": "1786",
+		"city": "Sugiez",
+		"country": "CH"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  7.11359,
+		  46.96843
+		],
+		"type": "Point"
+	  },
+	  "id": "262410e228c069667a525834b5200ac8"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Bruno Location Sarl",
+		"product": "EC3000",
+		"street": " 23 Rue Georges Lafille",
+		"ZIP": "10260",
+		"city": "Villemoyenne",
+		"country": "F"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  4.2309,
+		  48.17835
+		],
+		"type": "Point"
+	  },
+	  "id": "27955166a831e47fb8c972ffa7d841c2"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Lukas Fleischmann",
+		"product": "EC3000",
+		"street": " Z�richerstr. 32a",
+		"ZIP": "8854",
+		"city": "Siebnen",
+		"country": "CH"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.89326,
+		  47.17653
+		],
+		"type": "Point"
+	  },
+	  "id": "2857eadf996e839b3cbe89ae8df20265"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "FEIERN & MEHR",
+		"product": "WT3000P",
+		"street": " Brinkstrasse 3",
+		"ZIP": "27442",
+		"city": "Gnarrenburg",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  9.06687,
+		  53.34753
+		],
+		"type": "Point"
+	  },
+	  "id": "292462fbfb76e66ac66c356b61743d57"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "N�ssli (Deutschland) GmbH",
+		"product": "BR1200M",
+		"street": " Rothgrund 6",
+		"ZIP": "91154",
+		"city": "Roth / N�rnberg",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  11.11103,
+		  49.24291
+		],
+		"type": "Point"
+	  },
+	  "id": "2bca6f4b9c539e52fbbaf69eef729022"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "First Tent BVBA",
+		"product": "TA2000 |BR1200",
+		"street": " Artanlaan 16",
+		"ZIP": "8620",
+		"city": "Nieuwpoort",
+		"country": "B"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  2.72217,
+		  51.14726
+		],
+		"type": "Point"
+	  },
+	  "id": "2c742de4943eb620f60baf059be07820"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Georges Veldeman NV",
+		"product": "BR1200U | SW1000 | TA 1000",
+		"street": " Industrieterrein Vostert 1220",
+		"ZIP": "3960",
+		"city": "Bree",
+		"country": "B"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  5.58418,
+		  51.12373
+		],
+		"type": "Point"
+	  },
+	  "id": "2eda36654115d369de831b22e694063d"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Cyborg Messebau-Zelte GmbH ",
+		"product": "PR5000VG | TA2000",
+		"street": " Zu den Hufen 14",
+		"ZIP": "17034",
+		"city": "Neubrandenburg",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  13.27974,
+		  53.58361
+		],
+		"type": "Point"
+	  },
+	  "id": "3153f41d03ff89bdba8ff9e15c1eb970"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Arena Structures Ltd.",
+		"product": "SW1000 | TA2000 | WK2000 | WK1000 | PR6000VG",
+		"street": " Needingworth road",
+		"ZIP": "PE27 3ND",
+		"city": "St Ives - Cambridgeshire",
+		"country": "GB"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  -0.0658,
+		  52.32814
+		],
+		"type": "Point"
+	  },
+	  "id": "322ea273ae968758dc8e5779aa3e78df"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Fetscher-Zelte Salem",
+		"product": "EC3000",
+		"street": " In Oberwiesen 8",
+		"ZIP": "88682",
+		"city": "Salem",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  9.30146,
+		  47.75564
+		],
+		"type": "Point"
+	  },
+	  "id": "32f538a83c332ff2b349c5691f72b734"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Omni International Co Ltd",
+		"product": "Tentmaster",
+		"street": " 5F 1-5 Nanpeidaicho/ Shibuyaku",
+		"ZIP": "50-0036",
+		"city": "Tokyo",
+		"country": "J"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  139.69701,
+		  35.65566
+		],
+		"type": "Point"
+	  },
+	  "id": "332b5f4c49c15701a3447a1b758b4016"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Aktiv Pflug Planen Zelte GmbH",
+		"product": "PR 6000 HG",
+		"street": " Bahnhofstr. 3 ",
+		"ZIP": "1445",
+		"city": "Radebeul",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  13.62837,
+		  51.10554
+		],
+		"type": "Point"
+	  },
+	  "id": "33848b5ec9480faa217d8e932b297656"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Astalavista Eventmanagement Sarl.",
+		"product": "EC3000",
+		"street": " Centre Commercial & d'Affaire Mohammadia Mall - Lido/ 8�me �tage - Bureau N�13 08",
+		"ZIP": "16058",
+		"city": "Alger",
+		"country": "DZ"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  3.17504,
+		  36.73513
+		],
+		"type": "Point"
+	  },
+	  "id": "34e4183554635f9a521ca45da94e7676"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Getr�nke Marquart + S�hne KG",
+		"product": "WT3000K",
+		"street": " Stuttgarter Str. 64",
+		"ZIP": "71083",
+		"city": "Herrenberg",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.87411,
+		  48.60157
+		],
+		"type": "Point"
+	  },
+	  "id": "34e4abe4e67d73b99b259d708a8d8044"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Yellow Line AB",
+		"product": "PR6000VG",
+		"street": " Speditionsv�gen 27",
+		"ZIP": "14250",
+		"city": "Skogas",
+		"country": "S"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  18.11611,
+		  59.19725
+		],
+		"type": "Point"
+	  },
+	  "id": "366d6e33830140155f4b36e1e153e2ab"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Zeltverleih Krencky H.Krencky GmbH ",
+		"product": "PR3000HG",
+		"street": " Boschstr. 15",
+		"ZIP": "32051",
+		"city": "Herford",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.6224,
+		  52.10033
+		],
+		"type": "Point"
+	  },
+	  "id": "38e898f2123fdcea8f4158bb0d2d9649"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Visser Verhuur Tenten B.V.",
+		"product": "PR5000VG",
+		"street": " Parabool 50",
+		"ZIP": "3364 DH",
+		"city": "Sliedrecht",
+		"country": "NL"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  4.79631,
+		  51.82802
+		],
+		"type": "Point"
+	  },
+	  "id": "3c5a772f6fdb11864bd7a94dba37a470"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Lungauer Zeltverleih",
+		"product": "WT3000P",
+		"street": " Katzlau 103",
+		"ZIP": "5585",
+		"city": "Unternberg im Lungau",
+		"country": "A"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  13.74469,
+		  47.11286
+		],
+		"type": "Point"
+	  },
+	  "id": "3ef19afa4040194b98fc54e0061490ac"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Wiersma Partyverhuur BV",
+		"product": "EC5500",
+		"street": " Avondsterweg 10",
+		"ZIP": "8938 AK",
+		"city": "Leeuwarden",
+		"country": "NL"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  5.84242,
+		  53.19138
+		],
+		"type": "Point"
+	  },
+	  "id": "3fa2cba94913dbda4ff1c5b0e0aceb52"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Fetscher Zelte GmbH",
+		"product": "PR6000VG",
+		"street": " Andreas-Strobel-Str. 21",
+		"ZIP": "88677",
+		"city": "Markdorf/Ittendorf",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  9.34216,
+		  47.70162
+		],
+		"type": "Point"
+	  },
+	  "id": "4022f556369071dc331db4ca6320d1ac"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "R�ttimann Festhallen AG",
+		"product": "PR6000VG",
+		"street": " M�lacher 4",
+		"ZIP": "6024",
+		"city": "Hildisrieden",
+		"country": "CH"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.23185,
+		  47.14742
+		],
+		"type": "Point"
+	  },
+	  "id": "4033c1f7c7edb56711c90e7ebd7cab3d"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Zelte Unglaub GbR",
+		"product": "EC5000",
+		"street": " Hohe Str. 5b",
+		"ZIP": "92245",
+		"city": "K�mmersbr�ck",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  11.92077,
+		  49.39489
+		],
+		"type": "Point"
+	  },
+	  "id": "40bdf41ba04cd0363247275d6af47e3b"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Zelte und Hallen Sp�th GmbH",
+		"product": "PR5000HG | SW1000",
+		"street": " Ringstrasse 2",
+		"ZIP": "41515",
+		"city": "Grevenbroich",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  6.59142,
+		  51.10414
+		],
+		"type": "Point"
+	  },
+	  "id": "41403bbe54cc1fc5f27f0a2a134fd2ab"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Classic Tents Event Specialist",
+		"product": "PR6000VG | PR6000VG",
+		"street": " 3347 Pearson Road",
+		"ZIP": "38118",
+		"city": "Memphis/TN",
+		"country": "USA"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  -89.95232,
+		  35.07216
+		],
+		"type": "Point"
+	  },
+	  "id": "429f70587da3b33ccfef92dff6f7e4ad"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Durand Location Sarl",
+		"product": "EC5000",
+		"street": " Espace Cardonville",
+		"ZIP": "14740",
+		"city": "Bretteville l�Orgueilleuse",
+		"country": "F"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  -0.5209,
+		  49.20521
+		],
+		"type": "Point"
+	  },
+	  "id": "433bf3c06a170cf6cfcc7d207c617974"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Duy Zelt-und Veranstaltungsservice GmbH",
+		"product": "EC5000I",
+		"street": " Lengederstr.47",
+		"ZIP": "13407",
+		"city": "Berlin",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  13.35839,
+		  52.58332
+		],
+		"type": "Point"
+	  },
+	  "id": "43eaf9c7df3da09f8a08881244c12116"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Alquileres y Eventos Moldo Ltda",
+		"product": "PR7000VG",
+		"street": " Calle 77 No 66G-38",
+		"ZIP": "",
+		"city": "Bogota",
+		"country": "COL"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  -74.10338,
+		  4.68479
+		],
+		"type": "Point"
+	  },
+	  "id": "458eedcd6c9ad33ba0af304aacf00b56"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Briluxdome Fischer's Zelte GmbH",
+		"product": "EC5000",
+		"street": " Eisenbahnstrasse 3",
+		"ZIP": "76571",
+		"city": "Gaggenau",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.305149,
+		  48.81456
+		],
+		"type": "Point"
+	  },
+	  "id": "4a173315494b2f91af092df66feb59a7"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "XL-Rent bvba",
+		"product": "EC5000",
+		"street": " Burgemeester Rollierstraat 11",
+		"ZIP": "9470",
+		"city": "Denderleeuw",
+		"country": "B"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  4.07444,
+		  50.88538
+		],
+		"type": "Point"
+	  },
+	  "id": "4b424f585782e51910974da9f1765693"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Bundeswehr-Dienstleistungszentrum Husum",
+		"product": "PR6000 | TA2000 | WK2000",
+		"street": " Industriestr. 15",
+		"ZIP": "25813",
+		"city": "Husum",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  9.07307,
+		  54.48955
+		],
+		"type": "Point"
+	  },
+	  "id": "4b922de9445807f4ac937ba8d54e2486"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Bait al Nokhada",
+		"product": "Tentmaster",
+		"street": " Musaffah",
+		"ZIP": "",
+		"city": "Abu Dhabi",
+		"country": "UAE"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  54.4999,
+		  24.34953
+		],
+		"type": "Point"
+	  },
+	  "id": "4c3c95f4cb1edf81a6780bb4cf87c15d"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "india Zelt &Event AG",
+		"product": "WT3000P",
+		"street": " Bahnhofweg2",
+		"ZIP": "6048",
+		"city": "Horw",
+		"country": "CH"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.30838,
+		  47.01748
+		],
+		"type": "Point"
+	  },
+	  "id": "4dada5a3afd526d3605572d6de2d9038"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Nord-Vest Box",
+		"product": "PR3000VG",
+		"street": " Teglvaerksvej 9",
+		"ZIP": "7700",
+		"city": "Thisted",
+		"country": "DK"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.65787,
+		  56.95986
+		],
+		"type": "Point"
+	  },
+	  "id": "4e09107a01d9777abebce221f264666e"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Rental World",
+		"product": "SKP Ident",
+		"street": " 821 W. Jackson St.",
+		"ZIP": "78550",
+		"city": "Harlingen/TX",
+		"country": "USA"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  -97.70402,
+		  26.19242
+		],
+		"type": "Point"
+	  },
+	  "id": "4f04562a260c74946f2cd50926c8012e"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Elmark Wynajem Sp.zo.o",
+		"product": "EC5000I",
+		"street": " Ul Topolowa 3",
+		"ZIP": "62060",
+		"city": "Steszew",
+		"country": "PL"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  16.76219,
+		  52.27688
+		],
+		"type": "Point"
+	  },
+	  "id": "500dc74324ab2670e0276fdf2380c059"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Schwemm Zelte- und Hallenvertrieb GmbH",
+		"product": "PR3000HG",
+		"street": " Gottlieb-Daimler-Str. 11",
+		"ZIP": "86830",
+		"city": "Schwabm�nchen",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  10.76675,
+		  48.19853
+		],
+		"type": "Point"
+	  },
+	  "id": "50f2fd79a073a7ad05e2b9a7d4a5b601"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Sator Events GmbH",
+		"product": "PR5000HG",
+		"street": " Winzerkellerstr. 5",
+		"ZIP": "77815",
+		"city": "B�hl-Altschweier",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.1585,
+		  48.69935
+		],
+		"type": "Point"
+	  },
+	  "id": "518251c03ebda29d398da12e4d67f938"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "FKP Zelt-Event GmbH",
+		"product": "PR6000HG",
+		"street": " Im Steinb�hl 9",
+		"ZIP": "69518",
+		"city": "Abtsteinach",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.79454,
+		  49.54487
+		],
+		"type": "Point"
+	  },
+	  "id": "5344a6ccf42235752207f7bb59eadd21"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Preludio Group s.r.l.",
+		"product": "PR6000VG",
+		"street": " Via I� Maggio 39/P",
+		"ZIP": "52044",
+		"city": "Terontola (AR)",
+		"country": "I"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  12.00959,
+		  43.2103
+		],
+		"type": "Point"
+	  },
+	  "id": "5388b5ababf8e386f99a5da440c086c0"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Pattis hire",
+		"product": "PR5000VG",
+		"street": " 54 Belmore Road North/ Punchbowl NSW 2196",
+		"ZIP": "",
+		"city": "Sydney",
+		"country": "AUS"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  151.05642,
+		  -33.93701
+		],
+		"type": "Point"
+	  },
+	  "id": "5558988a0bb52c91c54c204764b0cc22"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "R�der France Structures Sarl.",
+		"product": "EC5000mobil ",
+		"street": " 28 All�e Monge",
+		"ZIP": "60000",
+		"city": "Beauvais",
+		"country": "F"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  2.11589,
+		  49.41803
+		],
+		"type": "Point"
+	  },
+	  "id": "556d070436ffa176b346e276b3c38fad"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Delta Tenten BVBA",
+		"product": "PR5000VG",
+		"street": " Oude Bevelsesteenweg 97a",
+		"ZIP": "22560",
+		"city": "Kessel - Nijlen",
+		"country": "B"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  4.64315,
+		  51.14272
+		],
+		"type": "Point"
+	  },
+	  "id": "5622c594cd2ef3beecd20022fcc048a4"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "MMS Grabe",
+		"product": "SKP Ident",
+		"street": " Goldbacher Stra�e 9",
+		"ZIP": "99869",
+		"city": "Warza",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  10.68641,
+		  50.99489
+		],
+		"type": "Point"
+	  },
+	  "id": "5633d5a3eff36ecb3958a826f2f0c19b"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Sara Telte ApS",
+		"product": "PR6000VG",
+		"street": " �de Hastrupvej 123",
+		"ZIP": "4000",
+		"city": "Roskilde",
+		"country": "DK"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  12.10554,
+		  55.61216
+		],
+		"type": "Point"
+	  },
+	  "id": "59088c6f8b1cb9bb95ea8bca895554d3"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "A-Tent",
+		"product": "PR5000HG",
+		"street": " Pav. 2/ 5th Luchevoy prosek/ Sokolniki Park",
+		"ZIP": "123056",
+		"city": "Moscow",
+		"country": "RUS"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  37.67417,
+		  55.80009
+		],
+		"type": "Point"
+	  },
+	  "id": "59ae7e6632321a4f0267ee25a10ebfcf"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Gladan AB",
+		"product": "SKP Ident",
+		"street": " Gasverksgatan 5",
+		"ZIP": "26132",
+		"city": "Landskrona",
+		"country": "S"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  12.84073,
+		  55.86761
+		],
+		"type": "Point"
+	  },
+	  "id": "5b3c56a1a310452fc5ea46cc2787c764"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Eichner GmbH",
+		"product": "PR3000HG",
+		"street": " Im D�rrloh 7",
+		"ZIP": "92360",
+		"city": "M�hlhausen",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  11.44662,
+		  49.15938
+		],
+		"type": "Point"
+	  },
+	  "id": "5b4f4f0e107997832c40aaa512a317c6"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Fyns Teltvask ApS",
+		"product": "PR6000VG",
+		"street": " Odensevej 100",
+		"ZIP": "5260",
+		"city": "Odense S",
+		"country": "DK"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  10.39273,
+		  55.36929
+		],
+		"type": "Point"
+	  },
+	  "id": "5c31c48c06cee515c707754a6dc47f96"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Zelte E. G�ttig GmbH",
+		"product": "Tentmaster",
+		"street": " Niedervellmarsche Str. 35",
+		"ZIP": "34233",
+		"city": "Fuldatal",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  9.50261,
+		  51.35514
+		],
+		"type": "Point"
+	  },
+	  "id": "5d3fffc6b97a02dd10a6b28c72b575d5"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Bieri Tenta AG",
+		"product": "TA2000",
+		"street": " Rothmatte 2",
+		"ZIP": "6022",
+		"city": "Grosswangen",
+		"country": "CH"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.05733,
+		  47.12851
+		],
+		"type": "Point"
+	  },
+	  "id": "5d73edf6fc79927383c78db32937247a"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Van Doorn Verhuur B.V.",
+		"product": "EC5500",
+		"street": " Nieuwegracht 6",
+		"ZIP": "3763",
+		"city": "LB Soest",
+		"country": "NL"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  5.26569,
+		  52.17996
+		],
+		"type": "Point"
+	  },
+	  "id": "6150eb12796ff6e5345c630aed1a32b4"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Losberger GmbH",
+		"product": "BR1200",
+		"street": " Gottlieb-Daimler-Ring 14",
+		"ZIP": "74906",
+		"city": "Bad Rappenau-F�rfeld",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  9.06619,
+		  49.21202
+		],
+		"type": "Point"
+	  },
+	  "id": "64a80158d0b068a6155feb0bad0a1bfe"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Pscheidl GbR",
+		"product": "WT3000P",
+		"street": " Ravensburger Str. 66",
+		"ZIP": "89079",
+		"city": "Ulm-Wiblingen",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  9.96968,
+		  48.35117
+		],
+		"type": "Point"
+	  },
+	  "id": "64daa9e4000831be87ca75538483c4a0"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "MIZE e.K.",
+		"product": "PR3000H",
+		"street": " Salierstr. 24",
+		"ZIP": "70736",
+		"city": "Fellbach",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  9.2727,
+		  48.82434
+		],
+		"type": "Point"
+	  },
+	  "id": "67ef8d49ce13a9ccec15a29b02faeb93"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Beck Zelte",
+		"product": "WT3000K",
+		"street": " Ermsstr. 1",
+		"ZIP": "72581",
+		"city": "Dettingen",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  9.35003,
+		  48.52571
+		],
+		"type": "Point"
+	  },
+	  "id": "68fa946240bef152c8db6fc09cd0c486"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Schmid Karl Stallzelte",
+		"product": "SW1000",
+		"street": " Mainwanger Str. 23",
+		"ZIP": "88605",
+		"city": "Sauldorf Boll",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  9.02985,
+		  47.94512
+		],
+		"type": "Point"
+	  },
+	  "id": "6989b122fd7c010888b9048e568a8e45"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Pedersens Hire",
+		"product": "EC3000",
+		"street": " 155 Vulcan Rd",
+		"ZIP": "6155",
+		"city": "Canning Vale WA",
+		"country": "AUS"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  115.90488,
+		  -32.060229
+		],
+		"type": "Point"
+	  },
+	  "id": "6d9f5605a4a89ecd893cbecb013d0848"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "RAJT BIS Sp. z. o. o.",
+		"product": "EC5000",
+		"street": " Ul. J. Dabrowskiego 116/32",
+		"ZIP": "02-598",
+		"city": "Warszawa",
+		"country": "PL"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  21.00329,
+		  52.19961
+		],
+		"type": "Point"
+	  },
+	  "id": "6e95be715ab8d2b7acf762901f8d1509"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Meznar GmbH",
+		"product": "PR5000HG | PR6000HG | TA2000",
+		"street": " Flotowstr. 2",
+		"ZIP": "66538",
+		"city": "Neunkirchen",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  7.19506,
+		  49.35005
+		],
+		"type": "Point"
+	  },
+	  "id": "6f4514895b7315473f85a7e68c243843"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "O.B. Wiik",
+		"product": "PR5000VG",
+		"street": " B�rrv�gen 3",
+		"ZIP": "15593",
+		"city": "Nykvarn / Stockholm",
+		"country": "S"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  17.35873,
+		  59.20803
+		],
+		"type": "Point"
+	  },
+	  "id": "6ff56eaf3a1c0eba5632654ce7a4621b"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Adolf  Kuhn AG Festzelt Vermietung",
+		"product": "PR5000HG",
+		"street": " M�hlackerstra�e 120",
+		"ZIP": "8046",
+		"city": "Z�rich",
+		"country": "CH"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.49801,
+		  47.42603
+		],
+		"type": "Point"
+	  },
+	  "id": "70b8feffcddb48884b461abb3d1256d3"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "UBS Switzerland AG",
+		"product": "EC5000",
+		"street": " Postfach",
+		"ZIP": "8098",
+		"city": "Z�rich",
+		"country": "CH"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.54016,
+		  47.37173
+		],
+		"type": "Point"
+	  },
+	  "id": "71f53c4159966d426c2e33c659b7fc80"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "N�ssli (Schweiz) AG",
+		"product": "PR3000HG",
+		"street": " Hauptstrasse 36",
+		"ZIP": "8536",
+		"city": "H�ttwilen",
+		"country": "CH"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.86612,
+		  47.61059
+		],
+		"type": "Point"
+	  },
+	  "id": "75d34034ff98797fa4ce05cb5deeb102"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Eventi A-Z SA",
+		"product": "WT3000P",
+		"street": " Zona Industriale",
+		"ZIP": "6930",
+		"city": "Bedano",
+		"country": "CH"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.92423,
+		  46.04482
+		],
+		"type": "Point"
+	  },
+	  "id": "769aaebe19fc6e7e55e4c6217d2331c7"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Aamand Udlejningscenter A/S",
+		"product": "PR3000VG",
+		"street": " Ringtvedvej 8",
+		"ZIP": "6500",
+		"city": "Vojans",
+		"country": "DK"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  9.34843,
+		  55.27901
+		],
+		"type": "Point"
+	  },
+	  "id": "776bdf03aa19559ea15ad286e43af018"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Modern B.V.",
+		"product": "EC5000 | BR1200OU",
+		"street": " Elektronweg 16A",
+		"ZIP": "3542",
+		"city": "AC Utrecht",
+		"country": "NL"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  5.07164,
+		  52.09944
+		],
+		"type": "Point"
+	  },
+	  "id": "787e641f8d81d2464e093493769bd177"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Zederkof A/S",
+		"product": "SKP Ident",
+		"street": " Prins Christians Kvarter 28",
+		"ZIP": "7000",
+		"city": "Fredericia",
+		"country": "DK"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  9.70161,
+		  55.5369
+		],
+		"type": "Point"
+	  },
+	  "id": "78a2d60fef0bd6a84f073224f3c2302e"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Schneider Partyzeltverleih",
+		"product": "EC3000",
+		"street": " Robert-Koch-Str. 14",
+		"ZIP": "33775",
+		"city": "Versmold",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.14855,
+		  52.03556
+		],
+		"type": "Point"
+	  },
+	  "id": "78f900f9c9dac123cd56cea0596db22e"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Stage & Audio Event Solutions",
+		"product": "EC5000",
+		"street": " 62 Bolsover Street",
+		"ZIP": "4700",
+		"city": "Rockhampton QLD.",
+		"country": "AUS"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  150.50766,
+		  -23.3732
+		],
+		"type": "Point"
+	  },
+	  "id": "791b97e2a97d71665d0b1fff85f24296"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Getr�nke H�fner GmbH & Co.KG",
+		"product": "EC5000I",
+		"street": " Bahnhofstr. 33",
+		"ZIP": "55232",
+		"city": "Alzey",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.109999,
+		  49.74951
+		],
+		"type": "Point"
+	  },
+	  "id": "799a916d48620ac6dc337284f8eb18a6"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Zeltverleih Kortkamp GbR",
+		"product": "EC5000",
+		"street": " Mittelweg 1",
+		"ZIP": "49170",
+		"city": "Hagen a.T.W.",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  7.93086,
+		  52.21847
+		],
+		"type": "Point"
+	  },
+	  "id": "79a97ed4d9c416ee59806f91015ca16a"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Nomaco Services AS",
+		"product": "WT3000K |Tentmaster",
+		"street": " Mongstad Sor",
+		"ZIP": "5954",
+		"city": "Mongstad",
+		"country": "NO"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  5.0649,
+		  60.79196
+		],
+		"type": "Point"
+	  },
+	  "id": "7a074db8971cbbaf9f2f0e527e1bca48"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "CR Inc.",
+		"product": "EC5000",
+		"street": " Higashi-Matsuyama-shi/ Saitama-ken/ 355-0073",
+		"ZIP": "2184",
+		"city": "Kaminomoto",
+		"country": "J"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  139.41527,
+		  36.02297
+		],
+		"type": "Point"
+	  },
+	  "id": "7b2616bc9401fc8beb63fba37df9c4c1"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Echami Echafaudages SA",
+		"product": "EC3000",
+		"street": " 14/ Chemin de Morglas",
+		"ZIP": "1214",
+		"city": "Vernier",
+		"country": "CH"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  6.07817,
+		  46.21863
+		],
+		"type": "Point"
+	  },
+	  "id": "7c0bf9534dabc0613574b8543c8b9f3f"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Se. des Ets Enderlin Sarl.",
+		"product": "EC3000",
+		"street": " 66 RUE N 66 ",
+		"ZIP": "68440",
+		"city": "Schlierbach",
+		"country": "F"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  7.39079,
+		  47.68854
+		],
+		"type": "Point"
+	  },
+	  "id": "7c643c4178ed3f9e7a0a862881142386"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Shaffer Sports and Events",
+		"product": "PR6000VG",
+		"street": "2630 5th Ave S",
+		"ZIP": "35210",
+		"city": "Irondale",
+		"country": "USA"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  -86.69677,
+		  33.54032
+		],
+		"type": "Point"
+	  },
+	  "id": "7c83e1b96d75403978f1224882a64177"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Nuck Zelte u. Planen e.K.",
+		"product": "PR6000HG | WK500",
+		"street": " Zeppelinstra�e 1",
+		"ZIP": "2625",
+		"city": "Bautzen",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  14.43205,
+		  51.16932
+		],
+		"type": "Point"
+	  },
+	  "id": "7cdf16b066bd1350c397b562f823ff4a"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Roeder de Mexico S.A. de C.V.",
+		"product": "EC5000",
+		"street": " Mariano Escobedo # 193/ Del. Miguel Hidalgo C.P. ",
+		"ZIP": "11320",
+		"city": "M�xico D.F. ",
+		"country": "MEX"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  -99.18311,
+		  19.44263
+		],
+		"type": "Point"
+	  },
+	  "id": "7e38ddb30d40be34d31aaa70aa038700"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Zelte M�ller",
+		"product": "EC5012 | EC5000",
+		"street": " Auf dem Taubhaus 26",
+		"ZIP": "57627",
+		"city": "Hachenburg",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  7.83635,
+		  50.66075
+		],
+		"type": "Point"
+	  },
+	  "id": "7fb5a52dbadf8fc60ce33899a31709b4"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Stampfer Zeltverleih GesmbH",
+		"product": "SKP Ident",
+		"street": " Uferstra�e 41",
+		"ZIP": "5110",
+		"city": "Oberndorf bei Salzburg",
+		"country": "A"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  12.94187,
+		  47.93632
+		],
+		"type": "Point"
+	  },
+	  "id": "7fcad1f70ad14b99d4e117dea00ae61c"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Zeltverleih Leilich",
+		"product": "WT3000P",
+		"street": " Steinheimer Str. 68 A",
+		"ZIP": "63500",
+		"city": "Seligenstadt",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.9742,
+		  50.05109
+		],
+		"type": "Point"
+	  },
+	  "id": "8251491c7404ac27730c02c10842ac56"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Brase Zelte GmbH & Co. KG",
+		"product": "PR6000VG",
+		"street": " Heide 3",
+		"ZIP": "31547",
+		"city": "Rehburg-Loccum",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  9.11626,
+		  52.44614
+		],
+		"type": "Point"
+	  },
+	  "id": "833f46435e21edf7d6dcb6c89c15da1d"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "De Wit Events BV",
+		"product": "PR6000VG",
+		"street": " Rijder 1A",
+		"ZIP": "1507",
+		"city": "DP Zaandam",
+		"country": "NL"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  4.79617,
+		  52.42746
+		],
+		"type": "Point"
+	  },
+	  "id": "846732cfb5b9cae2846964365af831a0"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Pages Hire",
+		"product": "CC 1000",
+		"street": " Punchbowl NWS 2196",
+		"ZIP": "2210",
+		"city": "Riverwood NSW",
+		"country": "AUS"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  151.0558,
+		  -33.92591
+		],
+		"type": "Point"
+	  },
+	  "id": "848174ec5b817cec716234e673c07143"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Berthold GmbH  ",
+		"product": "PR5000VG",
+		"street": " Lehenweg 8",
+		"ZIP": "6830",
+		"city": "Rankweil",
+		"country": "A"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  9.62356,
+		  47.27112
+		],
+		"type": "Point"
+	  },
+	  "id": "855c31b0d17d1d7d7b73b5f388b53cde"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Locabri SAS",
+		"product": "PR5000VG",
+		"street": " 224 RUE DU GENERAL DE GAUL. La Plaine D'Elite",
+		"ZIP": "69530",
+		"city": "Brignais",
+		"country": "F"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  4.75112,
+		  45.66484
+		],
+		"type": "Point"
+	  },
+	  "id": "8839f723f76bbda94bf75948e7189503"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Orsted Telte A/S",
+		"product": "PR6000VG",
+		"street": " Sondervangen 1 A",
+		"ZIP": "8950",
+		"city": "Orsted",
+		"country": "DK"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  10.32842,
+		  56.49454
+		],
+		"type": "Point"
+	  },
+	  "id": "88acd464c85b8293fc55d353e0651b5f"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "solen group",
+		"product": "Tentmaster",
+		"street": " Calle Monte Libano 4",
+		"ZIP": "77560",
+		"city": "Canc�n",
+		"country": "MEX"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  6.5418,
+		  46.52711
+		],
+		"type": "Point"
+	  },
+	  "id": "88b130e5d294798f5cebb0c258040138"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Trans-Hall ",
+		"product": "EC5000",
+		"street": " ul. Laskowa 24",
+		"ZIP": "62-060",
+		"city": "Steszew",
+		"country": "PL"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  16.69465,
+		  52.27976
+		],
+		"type": "Point"
+	  },
+	  "id": "8cbee9830eee68dddade5eec75a9cec2"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Santis Showline",
+		"product": "EC5000",
+		"street": " Gostewitzer Strasse 7",
+		"ZIP": "1594",
+		"city": "Hirschstein",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  13.33708,
+		  51.26765
+		],
+		"type": "Point"
+	  },
+	  "id": "8cdc1eba2315538234ab7f202fbbf24e"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Winkels Messe- und Ausstellungsbau GmbH",
+		"product": "BR1200K ",
+		"street": " Boschstr. 2",
+		"ZIP": "47533",
+		"city": "Kleve",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  6.13949,
+		  51.80796
+		],
+		"type": "Point"
+	  },
+	  "id": "8d275cdf491751e32dcb304295be5d74"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Stelte Zeltverleih",
+		"product": "WT3000K ",
+		"street": " Wittenberger Str. 3",
+		"ZIP": "49733",
+		"city": "Haren-Wesuwe",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  7.15363,
+		  52.76856
+		],
+		"type": "Point"
+	  },
+	  "id": "8fa5bf7ad5eb1db91672340e6082100b"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "SKP GmbH",
+		"product": "Construction",
+		"street": "In den Wald�ckern 26",
+		"ZIP": "75417",
+		"city": "M�hlacker",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.881065,
+		  48.951661
+		],
+		"type": "Point"
+	  },
+	  "id": "90893fa2efc3997d3101da909bc89a3e"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Nizhtent Company LLC",
+		"product": "EC5000",
+		"street": " street Kashenko/ h. 6",
+		"ZIP": "603152",
+		"city": "Nizhniy Novgorod",
+		"country": "RUS"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  56.24469,
+		  43.98043
+		],
+		"type": "Point"
+	  },
+	  "id": "942616d35ababc04f85527fa81937fe3"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Steel Logistics NV",
+		"product": "BR1200 | PR6000VG",
+		"street": " Kapelleweg 6",
+		"ZIP": "3150",
+		"city": "Tildonk (Haacht)",
+		"country": "B"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  4.66054,
+		  50.94414
+		],
+		"type": "Point"
+	  },
+	  "id": "948c285c8f9ad7da0c7d0773eb32eb21"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Zeltverleih Haag GmbH",
+		"product": "EC3000 | WT3000K",
+		"street": " Lauerh�fer Str. 9",
+		"ZIP": "67697",
+		"city": "Otterberg",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  7.76266,
+		  49.50543
+		],
+		"type": "Point"
+	  },
+	  "id": "95830ae1ba5e0b95f031314cd3faa11b"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "GL Events",
+		"product": "PR6000VG | PR6000VGD | BR1200",
+		"street": " Route d�Irigny/ BP 40",
+		"ZIP": "69530",
+		"city": "Brignais",
+		"country": "F"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  4.76953,
+		  45.67371
+		],
+		"type": "Point"
+	  },
+	  "id": "966ba6cec7bdb90ab78d71f2edbef104"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Brink Teltudlejning",
+		"product": "WT3000K",
+		"street": " T�strupvej 80",
+		"ZIP": "8462",
+		"city": "Harlev J",
+		"country": "DK"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  9.98331,
+		  56.11965
+		],
+		"type": "Point"
+	  },
+	  "id": "9790843a536569e9f626e8ba9e9fcdd8"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Schnetz Zeltverleih",
+		"product": "WT3000K",
+		"street": " Baien 5",
+		"ZIP": "88276",
+		"city": "Berg",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  9.55623,
+		  47.84157
+		],
+		"type": "Point"
+	  },
+	  "id": "9861520e62ec5c17b2fb98db4f1dd977"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "R�der OOO",
+		"product": "PR6000VG",
+		"street": " Solnechnogorskiy district/ Village Lunevo/ Garazhnaya street",
+		"ZIP": "141580",
+		"city": "Moscow",
+		"country": "RUS"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  37.33784,
+		  55.99448
+		],
+		"type": "Point"
+	  },
+	  "id": "986f59e5ebfa53baf1da3a06f7fe9648"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Schombert-Wagner Zeltverleih",
+		"product": "EC3000",
+		"street": " Gr�nberger Str. 29",
+		"ZIP": "35466",
+		"city": "Rabenau",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.89524,
+		  50.64648
+		],
+		"type": "Point"
+	  },
+	  "id": "992cf1f7ac7d1da328cd8021859d6d83"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "RK-Planen Robert Kr�ger GmbH",
+		"product": "PR3000HG",
+		"street": " Gro�moorring 11a",
+		"ZIP": "21079",
+		"city": "Hamburg",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  10.00556,
+		  53.45649
+		],
+		"type": "Point"
+	  },
+	  "id": "99818d25ece5de451aaccc49ae54d8c0"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "AB Tribunes b.v.b.a.",
+		"product": "EC5000",
+		"street": " Militaire Dijk 7",
+		"ZIP": "3930",
+		"city": "Hamont Achel",
+		"country": "B"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  5.5016,
+		  51.24387
+		],
+		"type": "Point"
+	  },
+	  "id": "99970c68f947fbbe701e213f1d261bba"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Regent Pioneer Ltd.",
+		"product": "Tentmaster",
+		"street": " Unit 7/ 10/F Wing Fung / 40-50 Sha Tsui Road",
+		"ZIP": "",
+		"city": "TSUEN WAN / HONG KONG",
+		"country": "HK"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  114.10891,
+		  22.3734
+		],
+		"type": "Point"
+	  },
+	  "id": "99eaba62940f9a0b29aed49ea66af1a5"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "O.B. Wiik",
+		"product": "BR1200 | WK500 | PR6000VG",
+		"street": " Industrieveien 13",
+		"ZIP": "2020",
+		"city": "Skedsmokorset",
+		"country": "NO"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  11.04094,
+		  60.00967
+		],
+		"type": "Point"
+	  },
+	  "id": "9a5056601aee5be0200090e8fe6b1ac7"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Picardie Reception Sarl.",
+		"product": "EC5012",
+		"street": " 23 rue de la Maladrerie",
+		"ZIP": "80150",
+		"city": "Yvrench",
+		"country": "F"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  2.00104,
+		  50.18279
+		],
+		"type": "Point"
+	  },
+	  "id": "9c70f2c6a27a6457c475f08e67a79f73"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Rinico Tentenverhuur VOF",
+		"product": "EC5012",
+		"street": " Cuijksedijk 1",
+		"ZIP": "5451",
+		"city": "NP Mill",
+		"country": "NL"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  5.80982,
+		  51.69831
+		],
+		"type": "Point"
+	  },
+	  "id": "9cf51846d2eb2910de12ec474a92a624"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "D'Pablos Internacional Trade S.A. DE C.V.",
+		"product": "Tentmaster",
+		"street": " Av. Tahel 421 Col. Pensador Mexicano",
+		"ZIP": "15510",
+		"city": "Del. Venustiano Carranza /  Mexiko D.F.",
+		"country": "MEX"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  -99.08075,
+		  19.44444
+		],
+		"type": "Point"
+	  },
+	  "id": "9de4fc02f02482d197f62cfdbc89ebd0"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Brendamour Hallen- und Zelttechnik GmbH",
+		"product": "PR5000",
+		"street": " In den Hilswiesen 4",
+		"ZIP": "66538",
+		"city": "Neunkirchen",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  7.20044,
+		  49.35343
+		],
+		"type": "Point"
+	  },
+	  "id": "9dea83506d0b84c2ab3c4c0988e085e5"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Liri Tents",
+		"product": "PR6000VG",
+		"street": " ANo. 3978 Hu Qingping Road",
+		"ZIP": "201703",
+		"city": "Shanghai",
+		"country": "CHN"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  121.4737,
+		  31.23042
+		],
+		"type": "Point"
+	  },
+	  "id": "a0a8d4d3e542b0c9d1e0c815ba276395"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Organisation&Promotion",
+		"product": "PR5000VG",
+		"street": " Z.I.Nazareth 27",
+		"ZIP": "4890",
+		"city": "Battice",
+		"country": "B"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  5.80259,
+		  50.64635
+		],
+		"type": "Point"
+	  },
+	  "id": "a0c95bed76a438cdfcec589d342ca5d5"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Proteus On-Demand Facilities",
+		"product": "PR6000VG",
+		"street": " 6727 Oak Ridge Commerce Way SW",
+		"ZIP": "30168",
+		"city": "Austell/GA",
+		"country": "USA"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  -84.60457,
+		  33.79141
+		],
+		"type": "Point"
+	  },
+	  "id": "a37e89a164a432988bb91202eff3b58c"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "BRELET SAS",
+		"product": "PR6000VGDL | BR1200",
+		"street": " Rue de la Pyramide",
+		"ZIP": "44230",
+		"city": "Saint-S�bastien sur Loire",
+		"country": "F"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  -1.48578,
+		  47.19978
+		],
+		"type": "Point"
+	  },
+	  "id": "a45b0871bb7473fe117da87d31715c11"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "BOURGOGNE LAVAGE BACHES Sarl.",
+		"product": "PR6000HG",
+		"street": " 1200 Route Nationale - La Maison Blanche",
+		"ZIP": "71570",
+		"city": "Roman�che Thorins",
+		"country": "F"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  4.74862,
+		  46.17979
+		],
+		"type": "Point"
+	  },
+	  "id": "a5ab3d950128b277bf11b71f0696493c"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "M&M Gastro-Service & Management",
+		"product": "WT3000K",
+		"street": " Brunskamp 7A",
+		"ZIP": "21220",
+		"city": "Seevetal",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  10.04837,
+		  53.38945
+		],
+		"type": "Point"
+	  },
+	  "id": "a811869911bcabb49980a6adb0c53228"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Megaforce GmbH",
+		"product": "PR5000VG | BR1200",
+		"street": " J�hlinger Str. 118",
+		"ZIP": "76356",
+		"city": "Weingarten",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.55169,
+		  49.04841
+		],
+		"type": "Point"
+	  },
+	  "id": "a86df8ab5e6dd03fee0c2ad267a67a65"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Enerpac Integrated Solutions B.V.",
+		"product": "Tentmaster",
+		"street": " Opaalstraat 44",
+		"ZIP": "7554 TS",
+		"city": "Hengelo",
+		"country": "NL"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  6.77716,
+		  52.2457
+		],
+		"type": "Point"
+	  },
+	  "id": "abf711a40a688d105f24a24003e833da"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Sprenger Zeltverleih",
+		"product": "PR5000VG",
+		"street": " Langobardenring 6",
+		"ZIP": "46286",
+		"city": "Dorsten",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  7.03687,
+		  51.71728
+		],
+		"type": "Point"
+	  },
+	  "id": "afaad5c929f92540bc7d7bbb84556521"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Schmid Werner",
+		"product": "BR1200OU",
+		"street": " Krauerhusstr.9",
+		"ZIP": "6206",
+		"city": "Neuenkirch",
+		"country": "CH"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.19974,
+		  47.10309
+		],
+		"type": "Point"
+	  },
+	  "id": "b020e59d0493773fe27156833f5175d1"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "A.B.M.V. Tribunes",
+		"product": "BR1200M | EC5000",
+		"street": " Rue de Nazareth 27",
+		"ZIP": "4651",
+		"city": "Battice",
+		"country": "B"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  5.80259,
+		  50.64635
+		],
+		"type": "Point"
+	  },
+	  "id": "b0a32e3bba952b5d631a50a3edbccde4"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Damerow'er Zelte",
+		"product": "CH5000",
+		"street": " Bremer Stra�e 23",
+		"ZIP": "59557",
+		"city": "Lippstadt",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.35403,
+		  51.65482
+		],
+		"type": "Point"
+	  },
+	  "id": "b325b40b9331087e07a79909cbbfc7de"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Organisation&Promotion",
+		"product": "WT3000K",
+		"street": " Z.I.Nazareth 27",
+		"ZIP": "4651",
+		"city": "Battice",
+		"country": "B"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  5.80259,
+		  50.64635
+		],
+		"type": "Point"
+	  },
+	  "id": "b38cfcabdc935d1c1dd2ff80293e57f3"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Shaffer Sports and Events",
+		"product": "PR6000VG",
+		"street": " 601 West 6th. St. Ave.",
+		"ZIP": "77007",
+		"city": "Houston",
+		"country": "USA"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  -95.40338,
+		  29.78206
+		],
+		"type": "Point"
+	  },
+	  "id": "b39e0b32bc660a1b68c38bbaafd680b3"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Winter & Westermann Zeltverleih",
+		"product": "EC5000",
+		"street": " Holtumer Hauptstra�e 2",
+		"ZIP": "27337",
+		"city": "Blender",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  9.09926,
+		  52.91487
+		],
+		"type": "Point"
+	  },
+	  "id": "b5bfaa06d08416d96353fc511306547d"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "EMF Industriemontagen GmbH",
+		"product": "EC5000",
+		"street": " An der Bundesstrasse 2",
+		"ZIP": "21447",
+		"city": "Handorf",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  10.34663,
+		  53.33059
+		],
+		"type": "Point"
+	  },
+	  "id": "b5cde6cac763813c4bcf5906564cf6d6"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Roder tent service (Shanghai) Co. Ltd",
+		"product": "EC5000",
+		"street": "Zhuhai Shi",
+		"ZIP": "",
+		"city": "Guangdong Sheng",
+		"country": "CHN"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  113.29447,
+		  22.16772
+		],
+		"type": "Point"
+	  },
+	  "id": "b94b214d0852f15304579b1d783c8f77"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Northern Event Structures Ltd",
+		"product": "Tentmaster",
+		"street": " 45 Coal Pit Lane",
+		"ZIP": "HD8 8PL",
+		"city": "Huddersfield",
+		"country": "GB"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  -1.66878,
+		  53.58424
+		],
+		"type": "Point"
+	  },
+	  "id": "b94f9ba920f787b32d0273d07c70c08a"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Zeltverleih Buchter",
+		"product": "EC3000",
+		"street": " Beethovenstr. 21",
+		"ZIP": "88276",
+		"city": "Berg",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  9.60096,
+		  47.80991
+		],
+		"type": "Point"
+	  },
+	  "id": "b977bb260f17b32696631c6c20138c34"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Beck Zelt- und Veranstaltungsservice",
+		"product": "Tentmaster",
+		"street": " Kreuzmattenstr. 22-23",
+		"ZIP": "79276",
+		"city": "Reute",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  7.80997,
+		  48.08732
+		],
+		"type": "Point"
+	  },
+	  "id": "bae529d1e0a45fde705fa7a90fabe078"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Telinemestari IPG Invest Oy",
+		"product": "PR3000VG",
+		"street": " Tampereentie 495",
+		"ZIP": "33880",
+		"city": "Lemp��l�",
+		"country": "FIN"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  23.75274,
+		  61.42646
+		],
+		"type": "Point"
+	  },
+	  "id": "bae852672880c5709c2b8df19880e22f"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Mietzelte Huber AG",
+		"product": "EC5000",
+		"street": " Baslerstrasse 5",
+		"ZIP": "4102",
+		"city": "Binningen",
+		"country": "CH"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  7.57766,
+		  47.54215
+		],
+		"type": "Point"
+	  },
+	  "id": "bcece34a349da69e62699e1c9d3bcb52"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Zelte Huth",
+		"product": "EC3000",
+		"street": " Zum Wingert 12A",
+		"ZIP": "35781",
+		"city": "Weilburg-Kubach",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.30085,
+		  50.47167
+		],
+		"type": "Point"
+	  },
+	  "id": "bd08255ffb69087aedb6a515d0c41673"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Constructions Tubulaires Tech SA",
+		"product": "PR 5000VG | TA2000",
+		"street": " Route du Bois de Bay 42",
+		"ZIP": "1242",
+		"city": "Satigny",
+		"country": "CH"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  6.06004,
+		  46.19778
+		],
+		"type": "Point"
+	  },
+	  "id": "bf40a767a7f0026d250372c524479391"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Maessen Tenten BV",
+		"product": "EC5500I",
+		"street": " Postbus 16",
+		"ZIP": "2240AA",
+		"city": " Wassenaar",
+		"country": "NL"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  4.41046,
+		  52.14604
+		],
+		"type": "Point"
+	  },
+	  "id": "bfcc2767f784b789e59a9a9df4df7f81"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Zelte Gieling",
+		"product": "EC3000",
+		"street": " Islandhof 1",
+		"ZIP": "53819",
+		"city": "Neunkirchen-Seelscheid",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  7.38288,
+		  50.85897
+		],
+		"type": "Point"
+	  },
+	  "id": "c1189a76009d60f9d82a76a692734796"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Peter Ammann Fest und Partyzelt Vermietung",
+		"product": "PR3000HG",
+		"street": " Haldenstr. 15",
+		"ZIP": "75446",
+		"city": "Wiernsheim",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.90047,
+		  48.89021
+		],
+		"type": "Point"
+	  },
+	  "id": "c14af392e1278629e33ab2c6d104c988"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Select Event Group",
+		"product": "PR6000VG",
+		"street": " 8610 Cherry Lane",
+		"ZIP": "20707",
+		"city": "Laurel MD",
+		"country": "USA"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  -76.85651,
+		  39.09135
+		],
+		"type": "Point"
+	  },
+	  "id": "c165a236113be4b815057fc9516808f5"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "NUOVA KROS EVENTI S.R.L.",
+		"product": "PR6000VG | WT3000P",
+		"street": " Via Aurelia Sud N.2",
+		"ZIP": "56121",
+		"city": "Coltano",
+		"country": "I"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  10.37169,
+		  43.66601
+		],
+		"type": "Point"
+	  },
+	  "id": "c1a502919693e3323e8f618056512ceb"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Mudway Workman",
+		"product": "EC3000 ",
+		"street": " Manor Farm/ Stoke Orchard",
+		"ZIP": "GL52 7RY",
+		"city": "Cheltenham / Glostershire",
+		"country": "GB"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  -2.12428,
+		  51.95295
+		],
+		"type": "Point"
+	  },
+	  "id": "c21edd225d1793a1dbb7e8a3bb1f1929"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "BHV Expo Groep bv",
+		"product": "PR6000VG| BR1200OUP | SW1000",
+		"street": " Wernhoutseweg 152b",
+		"ZIP": "4884",
+		"city": "Wernhout",
+		"country": "NL"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  4.63257,
+		  51.44038
+		],
+		"type": "Point"
+	  },
+	  "id": "c2257a45a334d00dca956d1fc1e59943"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Exeter Events & Tents",
+		"product": "SKP Ident",
+		"street": " 38/ Portsmouth Avenue",
+		"ZIP": "3833",
+		"city": "Exeter",
+		"country": "USA"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  -70.9406,
+		  42.98259
+		],
+		"type": "Point"
+	  },
+	  "id": "c3bbcf9327f24654bbabd45dcd09de90"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Erma-Zelte s.r.l.",
+		"product": "PR5000HG",
+		"street": " Via Parrocchia 20",
+		"ZIP": "39045",
+		"city": "Fortezza (Mittewald)-Franzensfeste",
+		"country": "I"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  11.57189,
+		  46.80697
+		],
+		"type": "Point"
+	  },
+	  "id": "c3bc69fb09309265a5d47eea70a3deb7"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "B&C Tent Party-Rent CVBA",
+		"product": "PR5000HG",
+		"street": " Kapiteinsstraat 51",
+		"ZIP": "9080",
+		"city": "Lochristi",
+		"country": "B"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  3.82943,
+		  51.12098
+		],
+		"type": "Point"
+	  },
+	  "id": "c451591d19a0496a527afa68b2a7406c"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Baltisberger Tentes SA",
+		"product": "PR5000HG",
+		"street": " Route de la Gare 4",
+		"ZIP": "1026",
+		"city": "Denges",
+		"country": "CH"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  6.5418,
+		  46.5269
+		],
+		"type": "Point"
+	  },
+	  "id": "c53c43389059bcd6f109a4f9a6571b60"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Europa-Tenten De Vreeze BVBA",
+		"product": "Tentmaster",
+		"street": " Krommewege 74",
+		"ZIP": "9990",
+		"city": "Maldegem",
+		"country": "B"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  3.46981,
+		  51.19381
+		],
+		"type": "Point"
+	  },
+	  "id": "c682cdf0918e71184b0993067dcbecc5"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Zeltebau Fiebig GmbH & Co. KG",
+		"product": "Tentmaster",
+		"street": " Auf der Wahnsbach 4",
+		"ZIP": "56368",
+		"city": "Katzenelnbogen",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  7.97909,
+		  50.27346
+		],
+		"type": "Point"
+	  },
+	  "id": "c6907e9b2a966d710558f7efce52848e"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Exploitatie Maatschappij Kuijf B.V.",
+		"product": "PR6000VGDL | BR1200",
+		"street": " Noordenseweg 39",
+		"ZIP": "2421 XW",
+		"city": " Nieuwkoop",
+		"country": "NL"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  4.80508,
+		  52.16054
+		],
+		"type": "Point"
+	  },
+	  "id": "c6acf3876b1361291825ed03f8341b31"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Nimarent BVBA",
+		"product": "EC5012",
+		"street": " Pilkemseweg 125",
+		"ZIP": "8900",
+		"city": "Ieper",
+		"country": "B"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  2.88675,
+		  50.87442
+		],
+		"type": "Point"
+	  },
+	  "id": "c7519f99f4f138b17560315c39b1a318"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Ranacher Getr�nke GmbH",
+		"product": "EC5000",
+		"street": " Pattergasse 4",
+		"ZIP": "9971",
+		"city": "Matrei i.O.",
+		"country": "A"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  12.53999,
+		  47.0007
+		],
+		"type": "Point"
+	  },
+	  "id": "c82a7eb7c2fd5db5793774cd51a0cf1a"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Zelt-B�seler",
+		"product": "PR6000VG",
+		"street": " Molkereistra�e 2",
+		"ZIP": "26936",
+		"city": "Stadland",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.45217,
+		  53.40297
+		],
+		"type": "Point"
+	  },
+	  "id": "c82a9182c8c6e099b45fd6c60da64721"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Otto K�hling GmbH",
+		"product": "PR6000VG",
+		"street": " Kopernikusstr. 2-4",
+		"ZIP": "49377",
+		"city": "Vechta",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.27905,
+		  52.74652
+		],
+		"type": "Point"
+	  },
+	  "id": "c8ee940cf0b4d2f432ebc932f69c94c7"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Tarpaulin Oy",
+		"product": "PR3000HG",
+		"street": " Ahopellontie 11",
+		"ZIP": "21290",
+		"city": "Rusko",
+		"country": "FIN"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  22.21634,
+		  60.50737
+		],
+		"type": "Point"
+	  },
+	  "id": "cab0915228521ac41a930b3a5c57c8a3"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "France Location Expo SAS",
+		"product": "PR6000VG | PR3000HG | WK2000",
+		"street": " Chemin de la Basseti�re ",
+		"ZIP": "14500",
+		"city": "Vire",
+		"country": "F"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  -0.8628,
+		  48.84876
+		],
+		"type": "Point"
+	  },
+	  "id": "cea491c7dc3c76603244ce4d15c51596"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Produccion de Espacios Inteligentes SA de CV",
+		"product": "Tentmaster",
+		"street": " MONTE LIBANO MANZANA 61 LOTE 61 4 / Benito Juarez",
+		"ZIP": "77560",
+		"city": "Quintana Roo",
+		"country": "MEX "
+	  },
+	  "geometry": {
+		"coordinates": [
+		  -86.8519,
+		  21.10981
+		],
+		"type": "Point"
+	  },
+	  "id": "cee7ec181b8ce769a6df8b75bcbdc10b"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Ascot event hire Ltd",
+		"product": "EC5000",
+		"street": " Green lane",
+		"ZIP": "0X7 5TU",
+		"city": "Heythrop Chipping Norton",
+		"country": "GB"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  -1.46477,
+		  51.94975
+		],
+		"type": "Point"
+	  },
+	  "id": "d07c63948980a85f52952ac3815834d9"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Teltspesialisten AS",
+		"product": "PR6000VG |BR1200OU",
+		"street": " Vikelvfaret 6",
+		"ZIP": "7054",
+		"city": "Ranheim",
+		"country": "NO"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  10.53905,
+		  63.42113
+		],
+		"type": "Point"
+	  },
+	  "id": "d1cebcf32ec69bd50bbb00bb43ef667d"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Starr Tents",
+		"product": "SKP Ident",
+		"street": " 75 beechwood ave",
+		"ZIP": "10801",
+		"city": "New  Rochelle/NY",
+		"country": "USA"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  -73.79083,
+		  40.90618
+		],
+		"type": "Point"
+	  },
+	  "id": "d65bde538e660c03ef2ead9e9ba291cc"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Michel Bijleveld BV",
+		"product": "PR6000VG",
+		"street": " Willeskop 103",
+		"ZIP": "3421",
+		"city": "GV Oudewater",
+		"country": "NL"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  4.90285,
+		  52.02344
+		],
+		"type": "Point"
+	  },
+	  "id": "d7a4c84d53e1d75a6db8ae95ebaa3379"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Burger - Zelte & Catering e.K.",
+		"product": "EC5000",
+		"street": " Im Tiefen Tal 16",
+		"ZIP": "87770",
+		"city": "Weinried-Obersch�negg",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  10.27535,
+		  48.12713
+		],
+		"type": "Point"
+	  },
+	  "id": "d9a4588745dbcd2ca6174bd03ef8e5a5"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Zelte & Container Vermietung Kn�rr",
+		"product": "PR6000VG | BR1200 | CC1000",
+		"street": " Kaiserstrasse 171",
+		"ZIP": "66862",
+		"city": "Kindsbach",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  7.64593,
+		  49.4276
+		],
+		"type": "Point"
+	  },
+	  "id": "da0f96002d2cc51033d4bfb1214800ed"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Getr�nke Riedinger",
+		"product": "EC5000",
+		"street": " Schillerstra�e 3",
+		"ZIP": "72818",
+		"city": "Trochtelfingen",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  9.24262,
+		  48.30988
+		],
+		"type": "Point"
+	  },
+	  "id": "da55af82b599f5d80b49f1bf4378a288"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Customs structures CC",
+		"product": "EC5000 | Tentmaster",
+		"street": " 67 Second Street Booysens Reserve ",
+		"ZIP": "2091",
+		"city": "Johannesburg",
+		"country": "ZA"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  28.01179,
+		  -26.23179
+		],
+		"type": "Point"
+	  },
+	  "id": "dbe5fb83ee723a98ae55f28c75a12861"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "AB-Party Tent s.r.o.",
+		"product": "EC5000",
+		"street": " Beranovych 65",
+		"ZIP": "19900",
+		"city": "Praha 9 Letnany",
+		"country": "CZ"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  14.51429,
+		  50.13491
+		],
+		"type": "Point"
+	  },
+	  "id": "dd13f303b5afafa263f7c434e1336aa0"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Sporthaus Verden GmbH",
+		"product": "EC5000",
+		"street": " Wechold 172",
+		"ZIP": "27318",
+		"city": "Hilgermissen",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  9.10858,
+		  52.85897
+		],
+		"type": "Point"
+	  },
+	  "id": "e0a3f84589d3684a3da73e5bf3d9f3af"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Donohue Marquees Ltd.",
+		"product": "PR6000HG",
+		"street": " Milltown",
+		"ZIP": "",
+		"city": "Garryhill Co. Carlow",
+		"country": "IRL"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  -6.84408,
+		  52.6696
+		],
+		"type": "Point"
+	  },
+	  "id": "e433c03d3d16c162ddc6f2f3975cedf7"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "De Boer Delivery N.V.",
+		"product": "BR1200OUS",
+		"street": " Industrieterrein Kanaal Noord 1303",
+		"ZIP": "3960",
+		"city": "Bree",
+		"country": "B"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  5.62619,
+		  51.14346
+		],
+		"type": "Point"
+	  },
+	  "id": "e48a3b77e510c3ca2720b37b49839875"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Messebau W�rnlein GmbH",
+		"product": "BR1200OU",
+		"street": " Messezentrum 1 ",
+		"ZIP": "90471",
+		"city": "N�rnberg",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  11.11518,
+		  49.41703
+		],
+		"type": "Point"
+	  },
+	  "id": "e58db6495634b72b12708feef933c70d"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "RBK Verhuur",
+		"product": "WT3000P",
+		"street": " Tervatenseweg 17",
+		"ZIP": "4481",
+		"city": "NC Kloetinge",
+		"country": "NL"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  3.92106,
+		  51.50362
+		],
+		"type": "Point"
+	  },
+	  "id": "e69d057890f4e632154b67530464236d"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "STAGECO Deutschland GmbH",
+		"product": "BR1200OU",
+		"street": " Sch�fflerstrasse 13",
+		"ZIP": "86343",
+		"city": "K�nigsbrunn",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  10.89005,
+		  48.28322
+		],
+		"type": "Point"
+	  },
+	  "id": "e87d0bbc8cd59edff7bb66a1ed73dfad"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Gebhard Wildegg AG",
+		"product": "PR5000HG",
+		"street": " Hardhof",
+		"ZIP": "5103",
+		"city": "Wildegg",
+		"country": "CH"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.157349,
+		  47.41144
+		],
+		"type": "Point"
+	  },
+	  "id": "e9607156213f1ece9c380d85815f6ca9"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Eventmore SA",
+		"product": "EC5000",
+		"street": " Via San Gottardo 18/d",
+		"ZIP": "6532",
+		"city": "Castione",
+		"country": "CH"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  9.04122,
+		  46.23091
+		],
+		"type": "Point"
+	  },
+	  "id": "e9e516bf308cdfff9eb86666b332f487"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "GOMI Zelte & Mietm�bel GmbH",
+		"product": "PR5000VG",
+		"street": " Robertgasse 1/2/10",
+		"ZIP": "1020",
+		"city": "Wien",
+		"country": "A"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  16.38889,
+		  48.21417
+		],
+		"type": "Point"
+	  },
+	  "id": "eaac8c519b55ebfae3dc68699fa2f4c4"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Geltz Umwelttechnologie GmbH",
+		"product": "BJ200",
+		"street": " Br�hlstr. 32",
+		"ZIP": "75223",
+		"city": "Niefern-�schelbronn",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.81094,
+		  48.90084
+		],
+		"type": "Point"
+	  },
+	  "id": "ec2899f5a806535e8ace8c6d125c0c3c"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Spengler",
+		"product": "WT3000K",
+		"street": " Hauptstr. 24",
+		"ZIP": "8585",
+		"city": "Sch�nenbaumgarten",
+		"country": "CH"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  9.23253,
+		  47.61259
+		],
+		"type": "Point"
+	  },
+	  "id": "ec4a68a64e4cfa41c9d66f486f428b93"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Roskilde Teltudlejning",
+		"product": "BR1200OU",
+		"street": " Korshavevej 25",
+		"ZIP": "2640",
+		"city": "Hedehusene",
+		"country": "DK"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  12.18783,
+		  55.65327
+		],
+		"type": "Point"
+	  },
+	  "id": "ec53af58ccb4e93e6fb2920bca2b50f1"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Bisgaard Sorensen Teltudlejning",
+		"product": "PR6000VG",
+		"street": " Vejlevej 58",
+		"ZIP": "8700",
+		"city": "Horsens",
+		"country": "DK"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  9.8242,
+		  55.84608
+		],
+		"type": "Point"
+	  },
+	  "id": "ede67ca9a3858aa8268eb842ff2583f5"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "E & E die Partyl�wen GmbH & Co.KG",
+		"product": "PR6000VG",
+		"street": " Friesenstr. 19",
+		"ZIP": "26655",
+		"city": "Westerstede-Moorburg",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  7.89708,
+		  53.28884
+		],
+		"type": "Point"
+	  },
+	  "id": "ee0bddbcae30c9f1d8a9469ebbfe17d4"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Zeltverleih Schr�er & Sohn GbR",
+		"product": "PR5000VG",
+		"street": " Ringeler Str. 197",
+		"ZIP": "49525",
+		"city": "Lengerich",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  7.84002,
+		  52.1366
+		],
+		"type": "Point"
+	  },
+	  "id": "eea05a2c9ec615fe3079ff45e67026cc"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Rollis rollende Theken",
+		"product": "PR3000HG",
+		"street": " Wilhelm-Kaune-Str. 14",
+		"ZIP": "31177",
+		"city": "Harsum OT Adlum",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  10.07296,
+		  52.21328
+		],
+		"type": "Point"
+	  },
+	  "id": "ef33e2ad744bc9a8466d8dad1d7cb52c"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Gorges tent�event GmbH & Co.KG",
+		"product": "PR6000VG | TA2000",
+		"street": " Eifelstr. 34",
+		"ZIP": "56759",
+		"city": "Laubach",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  7.07146,
+		  50.23271
+		],
+		"type": "Point"
+	  },
+	  "id": "efa11aaacb8d8f79db5ad87874d839e7"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Zeltverleih Egerer GmbH",
+		"product": "PR3000H",
+		"street": " S�dring 58c",
+		"ZIP": "91785",
+		"city": "Pleinfeld",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  10.9745,
+		  49.09884
+		],
+		"type": "Point"
+	  },
+	  "id": "f105ba22af1a05b6ab3a7f9502a926a0"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Pessin Location SARL",
+		"product": "EC5000",
+		"street": " Route de Digoin/ ZA de Chazey",
+		"ZIP": "71130",
+		"city": "Gueugnon",
+		"country": "F"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  4.06118,
+		  46.57977
+		],
+		"type": "Point"
+	  },
+	  "id": "f144526ff4de825228715f68a89f0764"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Zeltbau Peter",
+		"product": "PR5000HG",
+		"street": " Steinweg 23",
+		"ZIP": "98617",
+		"city": "Meiningen",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  10.41552,
+		  50.56071
+		],
+		"type": "Point"
+	  },
+	  "id": "f1dfdc439a04d0fa12ed3c22be5c5b2f"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Extend srl",
+		"product": "TA2000 | PR6000VG | BR1200 | AP500 | PR5000VG",
+		"street": " Via delle sorgenti 1",
+		"ZIP": "35013",
+		"city": "Cittadella",
+		"country": "I"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  11.79142,
+		  45.64299
+		],
+		"type": "Point"
+	  },
+	  "id": "f1ee700463786619be83bd1ea9d3ad52"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "B�hler Zelt- und B�hnensysteme GmbH",
+		"product": "PR6000VG",
+		"street": " Weiherstr. 3",
+		"ZIP": "97633",
+		"city": "Gro�eibstadt",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  10.41642,
+		  50.30368
+		],
+		"type": "Point"
+	  },
+	  "id": "f1f165d9de5ca7103019af608a1e7f23"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Serna Tents",
+		"product": "Tentmaster",
+		"street": " Camino Real a San Lorenzo 61/ 8va Amp San Miguel",
+		"ZIP": "9830",
+		"city": "Ciudad de M�xico",
+		"country": "MEX"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  -99.08369,
+		  19.35417
+		],
+		"type": "Point"
+	  },
+	  "id": "f2f2db128440d59fe4dd50c3461fad04"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Barrawasser GmbH ",
+		"product": "PR5000H",
+		"street": " Marie-Curie-Str. 8",
+		"ZIP": "41515",
+		"city": "Grevenbroich",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  6.62845,
+		  51.08191
+		],
+		"type": "Point"
+	  },
+	  "id": "f49f3c4e1072c98276fc6ed9e5ba8f0e"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Bitburger Zelteverleih Lenz GmbH",
+		"product": "PR6000VG | TA2000 | SW1000",
+		"street": " Pr�mstr. 3",
+		"ZIP": "54636",
+		"city": "Wi�mannsdorf-Hermesdorf",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  6.44748,
+		  49.99547
+		],
+		"type": "Point"
+	  },
+	  "id": "f70d44e9b6bc8f1307fee7dd06943ac6"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Chapiteaux Service sarl",
+		"product": "EC5000",
+		"street": " Rue d'Olsberg 57",
+		"ZIP": "57720",
+		"city": "Breidenbach",
+		"country": "F"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  7.42122,
+		  49.13632
+		],
+		"type": "Point"
+	  },
+	  "id": "f8a8fa7653c1b3ec9c097eafa375e97a"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Eschenbach Zeltbau GmbH  Co. KG",
+		"product": "PR6000VGDUO | BR1200 | TA2000",
+		"street": " Hoher Markstein 18-24",
+		"ZIP": "97631",
+		"city": "Bad K�nigshofen",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  10.46239,
+		  50.30666
+		],
+		"type": "Point"
+	  },
+	  "id": "fa710569702a18edae09afb1f09e2244"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Utleie Partner AS",
+		"product": "PR 6000 VG | BR 1200 OU",
+		"street": " Bruksgata 52",
+		"ZIP": "3321",
+		"city": "Vestfossen",
+		"country": "NO"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  9.87227,
+		  59.73603
+		],
+		"type": "Point"
+	  },
+	  "id": "fbd56c701efbdb6da91eb019710cb922"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Much Festservice GmbH & Co. KG",
+		"product": "PR6000VG",
+		"street": " Am Fleckenberg 21",
+		"ZIP": "65549",
+		"city": "Limburg",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  8.05389,
+		  50.40425
+		],
+		"type": "Point"
+	  },
+	  "id": "fbdcf7c93e95966010e89b1a6db7f823"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Espace couvert Sarl",
+		"product": "PR6000VG",
+		"street": " 1 rue de l'Embranchement - ZI",
+		"ZIP": "67116",
+		"city": "Reichstett",
+		"country": "F"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  7.77433,
+		  48.64364
+		],
+		"type": "Point"
+	  },
+	  "id": "fc7fa49d466cacdafa3185aea51f5172"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Festzeltbetrieb Geiger GmbH",
+		"product": "Tentmaster",
+		"street": " Alte Mittelh�user Strasse 3",
+		"ZIP": "99091",
+		"city": "Erfurt",
+		"country": "D"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  11.00852,
+		  51.02561
+		],
+		"type": "Point"
+	  },
+	  "id": "fe1b2c8f4b9964c2fcea3c7ced7f194e"
+	},
+	{
+	  "type": "Feature",
+	  "properties": {
+		"name": "Pfeifer",
+		"product": "WT3000K",
+		"street": " Altenberg 71",
+		"ZIP": "8295",
+		"city": "St. Johann in der Haide",
+		"country": "A"
+	  },
+	  "geometry": {
+		"coordinates": [
+		  16.019459,
+		  47.26641
+		],
+		"type": "Point"
+	  },
+	  "id": "ff9e010a1e83a5f9bdf72143456b6c08"
+	}
+  ]
+};
+
+map.on('load', function(e) {
+  // Add the data to your map as a layer
+    map.addSource('customers', {
+    type: 'geojson',
+    data: './customers.geojson'
+  });
+  buildLocationList(customers);
+});
+
+customers.features.forEach(
+	function(marker) {
+  // Create a div element for the marker
+  var el = document.createElement('div');
+  // Add a class called 'marker' to each div
+  el.className = 'marker_machine';
+  if(marker.properties.product == 'SKP Ident')
+  {
+	el.className = 'marker_ident';
+  }
+  if(marker.properties.product == 'Tentmaster')
+  {
+	el.className = 'marker_tentmaster';
+  }
+  // By default the image for your custom marker will be anchored
+  // by its top left corner. Adjust the position accordingly
+  el.style.left = '-10px';
+  el.style.top = '-10px';
+  // Create the custom marker_machines, set their position, and add to map
+  new mapboxgl.Marker(el)
+    .setLngLat(marker.geometry.coordinates)
+    .addTo(map);
+
+
+	el.addEventListener('click', function(e) {
+	  var activeItem = document.getElementsByClassName('active');
+	  // 1. Fly to the point
+	  flyToLocation(marker);
+	  // 2. Close all other popups and display popup for clicked customer
+	  createPopUp(marker);
+	  // 3. Highlight listing in sidebar (and remove highlight for all other listings)
+	  e.stopPropagation();
+	  if (activeItem[0]) {
+		activeItem[0].classList.remove('active');
+	  }
+	  var listing = document.getElementById('listing-' + i);
+	  console.log(listing);
+	  listing.classList.add('active');
+	});
+});
+
+function flyToLocation(currentFeature) {
+  map.flyTo({
+    center: currentFeature.geometry.coordinates,
+    zoom: 15
+  });
+}
+
+function createPopUp(currentFeature) {
+  var popUps = document.getElementsByClassName('mapboxgl-popup');
+  // Check if there is already a popup on the map and if so, remove it
+  if (popUps[0]) popUps[0].remove();
+
+  var popup = new mapboxgl.Popup({ closeOnClick: true })
+    .setLngLat(currentFeature.geometry.coordinates)
+    .setHTML('<h3>' + currentFeature.properties.name + '</h3>' +
+      '<h4>' + currentFeature.properties.product + '</h4>')
+    .addTo(map);
+}
+
+function buildLocationList(data) {
+  // Iterate through the list of customers
+  for (i = 0; i < data.features.length; i++) {
+    var currentFeature = data.features[i];
+    // Shorten data.feature.properties to just `prop` so we're not
+    // writing this long form over and over again.
+    var prop = currentFeature.properties;
+    // Select the listing container in the HTML and append a div
+    // with the class 'item' for each customer
+    var listings = document.getElementById('listings');
+    var listing = listings.appendChild(document.createElement('div'));
+    listing.className = 'item';
+    listing.id = 'listing-' + i;
+
+    // Create a new link with the class 'title' for each customer
+    // and fill it with the customers address
+    var link = listing.appendChild(document.createElement('a'));
+    link.href = '#';
+    link.className = 'title';
+    link.dataPosition = i;
+    link.innerHTML = prop.name;
+
+    // Create a new div with the class 'details' for each customer
+    // and fill it with the city and phone number
+    var details = listing.appendChild(document.createElement('div'));
+    details.innerHTML = prop.street + '<br>' + prop.ZIP + ' &middot; ' + prop.city +' &middot; ' + prop.country +  '<br>' + prop.product;
+  
+
+		// Add an event listener for the links in the sidebar listing
+		link.addEventListener('click', function(e) {
+		  // Update the currentFeature to the customer associated with the clicked link
+		  var clickedListing = data.features[this.dataPosition];
+		  // 1. Fly to the point associated with the clicked link
+		  flyToLocation(clickedListing);
+		  // 2. Close all other popups and display popup for clicked customer
+		  createPopUp(clickedListing);
+		  // 3. Highlight listing in sidebar (and remove highlight for all other listings)
+		  var activeItem = document.getElementsByClassName('active');
+		  if (activeItem[0]) {
+			activeItem[0].classList.remove('active');
+		  }
+		  this.parentNode.classList.add('active');
+		});
+	}
+}
+
+</script>
+
+</body>
+</html>
